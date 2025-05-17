@@ -3,7 +3,7 @@ from collections.abc import AsyncIterator
 from logging import getLogger
 from typing import Any, Dict
 
-from agents import Runner, trace
+from agents import Agent, Runner, trace
 from agents.voice import (
     TTSModelSettings,
     VoicePipeline,
@@ -23,6 +23,7 @@ from app.utils import (
     process_inputs,
 )
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+import os
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 
@@ -71,7 +72,19 @@ class Workflow(VoiceWorkflowBase):
 async def websocket_endpoint(websocket: WebSocket):
     with trace("Voice Agent Chat"):
         await websocket.accept()
-        connection = WebsocketHelper(websocket, [], starting_agent)
+        api_key = websocket.query_params.get("api_key")
+        system_prompt = websocket.query_params.get("system_prompt")
+        if api_key:
+            os.environ["OPENAI_API_KEY"] = api_key
+        initial_agent = starting_agent
+        if system_prompt:
+            initial_agent = Agent(
+                name="Custom Agent",
+                instructions=system_prompt,
+                model="gpt-4o-mini",
+            )
+
+        connection = WebsocketHelper(websocket, [], initial_agent)
         audio_buffer = []
 
         workflow = Workflow(connection)
