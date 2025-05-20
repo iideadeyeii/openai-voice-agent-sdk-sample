@@ -58,6 +58,10 @@ export function useWebsocket({
     });
 
     websocket.current = ws;
+    return () => {
+      ws.close();
+      websocket.current = null;
+    };
   }, [url, onNewAudio, onAudioDone]);
 
   useEffect(() => {
@@ -120,6 +124,11 @@ export function useWebsocket({
     );
   }
 
+  function disconnect() {
+    websocket.current?.close();
+    setIsReady(false);
+  }
+
   return {
     isReady,
     sendTextMessage,
@@ -128,5 +137,6 @@ export function useWebsocket({
     resetHistory,
     agentName,
     isLoading,
+    disconnect,
   };
 }
